@@ -22,7 +22,7 @@ const etat = {
 };
 
 const URL_API = 'https://api.coingecko.com/api/v3';
-const COMMISSION = 0.001;
+const COMMISSION = 0.002;
 
 /* =========================================
    Stockage local
