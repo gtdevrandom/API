@@ -465,7 +465,7 @@ function confirmerOrdre() {
 
   const prix = actif.prix || etat.cachePrix[actif.id];
   const quantite = montant / prix;
-  const commission =2 * ( montant * COMMISSION );
+  const commission = 1/2 * ( montant * COMMISSION );
 
   if (etat.typeOrdre === 'achat') {
     if (montant + commission > etat.solde) return notifier('Solde insuffisant', 'erreur');
