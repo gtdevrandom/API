@@ -113,30 +113,57 @@ async function requeteCache(url, cle, ttl = 30000) {
   const cache = etat.cacheDonnees[cle];
   if (cache && maintenant - cache.ts < ttl) return cache.donnees;
   try {
-    const rep = await fetch(url);
-    if (!rep.ok) throw new Error(rep.status);
+    const controleur = new AbortController();
+    const minuterie = setTimeout(() => controleur.abort(), 8000);
+    
+    const rep = await fetch(url, { 
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controleur.signal
+    });
+    clearTimeout(minuterie);
+    
+    if (!rep.ok) throw new Error(`API Error: ${rep.status}`);
     const donnees = await rep.json();
     etat.cacheDonnees[cle] = { donnees, ts: maintenant };
     return donnees;
   } catch(e) {
+    console.warn(`Erreur API pour ${cle}:`, e.message);
     if (cache) return cache.donnees;
     throw e;
   }
 }
 
 async function chargerCryptos() {
-  const url = `${URL_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=30&page=1&sparkline=false&price_change_percentage=24h`;
-  const donnees = await requeteCache(url, 'cryptos', 30000);
-  donnees.forEach(c => { etat.cachePrix[c.id] = c.current_price; });
-  return donnees;
+  try {
+    const url = `${URL_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h`;
+    const donnees = await requeteCache(url, 'cryptos', 60000);
+    if (!Array.isArray(donnees) || donnees.length === 0) {
+      throw new Error('Données invalides');
+    }
+    donnees.forEach(c => { 
+      etat.cachePrix[c.id] = c.current_price || 0;
+    });
+    return donnees.filter(c => c.current_price > 0);
+  } catch(e) {
+    console.error('Erreur chargerCryptos:', e);
+    notifier('Erreur de chargement des crypto', 'erreur');
+    return [];
+  }
 }
 
 async function chargerHistorique(idCoin, jours) {
-  const url = `${URL_API}/coins/${idCoin}/market_chart?vs_currency=usd&days=${jours}`;
   try {
+    const url = `${URL_API}/coins/${idCoin}/market_chart?vs_currency=usd&days=${jours}`;
     const donnees = await requeteCache(url, `hist-${idCoin}-${jours}`, 120000);
-    return donnees.prices.map(([ts, p]) => ({ temps: new Date(ts), prix: p }));
+    if (!donnees.prices || !Array.isArray(donnees.prices)) {
+      return genererHistoriqueSimule(etat.cachePrix[idCoin] || 100, jours);
+    }
+    return donnees.prices
+      .filter(([ts, p]) => p > 0)
+      .map(([ts, p]) => ({ temps: new Date(ts), prix: p }));
   } catch(e) {
+    console.warn('Fallback à historique simulé:', e.message);
     return genererHistoriqueSimule(etat.cachePrix[idCoin] || 100, jours);
   }
 }
@@ -212,6 +239,12 @@ function dessinerGraphique(historique) {
   const min = Math.min(...prix);
   const max = Math.max(...prix);
 
+  // Vérifier que Chart.js existe
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js non chargé');
+    return;
+  }
+
   etat.graphiquePrincipal = new Chart(canvas, {
     type: 'line',
     data: {
@@ -219,16 +252,16 @@ function dessinerGraphique(historique) {
       datasets: [{
         data: prix,
         borderColor: couleur,
-        borderWidth: 2,
+        borderWidth: 2.5,
         fill: true,
         backgroundColor: (ctx) => {
           const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
-          g.addColorStop(0, enHausse ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)');
+          g.addColorStop(0, enHausse ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)');
           g.addColorStop(1, 'rgba(255,255,255,0)');
           return g;
         },
         pointRadius: 0,
-        tension: 0.3,
+        tension: 0.4,
       }]
     },
     options: {
@@ -243,6 +276,8 @@ function dessinerGraphique(historique) {
           bodyColor: '#000',
           borderColor: '#e0e0e0',
           borderWidth: 1,
+          padding: 8,
+          displayColors: false,
           callbacks: {
             label: ctx => ' ' + formaterMontant(ctx.parsed.y, ctx.parsed.y < 1 ? 4 : 2)
           }
@@ -254,25 +289,26 @@ function dessinerGraphique(historique) {
           grid: { display: false },
           ticks: {
             maxTicksLimit: 6,
-            font: { size: 10, family: "'Inter', sans-serif" },
+            font: { size: 11, family: "'Inter', sans-serif" },
             color: '#999',
             maxRotation: 0,
             callback: (val, index, ticks) => {
               const d = etiquettes[index];
               if (!d) return '';
-              return d instanceof Date
-                ? d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-                : '';
+              if (d instanceof Date) {
+                return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+              }
+              return '';
             }
           }
         },
         y: {
           display: true,
-          position: 'left',
-          grid: { color: '#f0f0f0' },
+          position: 'right',
+          grid: { color: '#f5f5f5', drawBorder: false },
           ticks: {
             maxTicksLimit: 5,
-            font: { size: 10, family: "'Inter', sans-serif" },
+            font: { size: 11, family: "'Inter', sans-serif" },
             color: '#999',
             callback: val => {
               if (val >= 1000) return '$' + (val / 1000).toFixed(0) + 'K';
@@ -312,11 +348,11 @@ async function chargerPageMarche(cat = etat.categorieActuelle) {
         id: c.id,
         symbole: c.symbol.toUpperCase() + 'USDT',
         nom: c.name,
-        prix: c.current_price,
-        variation: c.price_change_percentage_24h,
-        icone: c.image,
+        prix: c.current_price || 0,
+        variation: c.price_change_percentage_24h || 0,
+        icone: c.image || '📊',
         categorie: 'crypto',
-      }));
+      })).filter(a => a.prix > 0);
     } else if (cat === 'forex') {
       if (!etat.donneesMarches.forex.length) etat.donneesMarches.forex = donneesForex();
       actifs = etat.donneesMarches.forex.map(f => ({
@@ -331,8 +367,8 @@ async function chargerPageMarche(cat = etat.categorieActuelle) {
       }));
     }
   } catch(e) {
+    console.error('Erreur chargerPageMarche:', e);
     notifier('Erreur de chargement', 'erreur');
-    return;
   }
 
   // Filtrer par recherche
@@ -343,7 +379,7 @@ async function chargerPageMarche(cat = etat.categorieActuelle) {
 
   // Sélectionner le premier par défaut
   if (filtres.length && (!etat.actifSelectionne || etat.actifSelectionne.categorie !== cat)) {
-    await selectionnerActif(filtres[0], false);
+    await selectionnerActif(filtres[0], true);
   }
 
   afficherListeActifs(filtres);
@@ -465,7 +501,7 @@ function confirmerOrdre() {
 
   const prix = actif.prix || etat.cachePrix[actif.id];
   const quantite = montant / prix;
-  const commission = 1/2 * ( montant * COMMISSION );
+  const commission = montant * COMMISSION;
 
   if (etat.typeOrdre === 'achat') {
     if (montant + commission > etat.solde) return notifier('Solde insuffisant', 'erreur');
