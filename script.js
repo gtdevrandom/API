@@ -6,7 +6,7 @@
    (800 requêtes/jour, forex + actions + historique)
    ===================================================== */
 const CLES = {
-  twelvedata: '2fce0d0746264018a5e81973ac5871f9',
+  twelvedata: 'YOUR_TWELVEDATA_API_KEY',
 };
 
 /* =====================================================

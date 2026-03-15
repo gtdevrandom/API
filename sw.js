@@ -1,14 +1,15 @@
 'use strict';
 
-const NOM_CACHE = 'alphatrade-v4';
+const NOM_CACHE = 'alphatrade-v5';
 
 const RESSOURCES_STATIQUES = [
-  './index.html',
-  './style.css',
-  './script.js',
-  './manifest.json',
-  './icones/icone-192.png',
-  './icones/icone-512.png',
+  '/',
+  '/index.html',
+  '/style.css',
+  '/script.js',
+  '/manifest.json',
+  '/icones/icone-192.png',
+  '/icones/icone-512.png',
 ];
 
 self.addEventListener('install', evt => {
