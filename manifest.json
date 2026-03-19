@@ -1,10 +1,10 @@
 {
-  "id": "/",
+  "id": "/API/",
   "name": "AlphaTrade — Simulateur de Trading",
   "short_name": "AlphaTrade",
   "description": "Simulateur de trading crypto, forex et actions avec solde fictif. Entraînez-vous sans risque avec un capital fictif.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/API/",
+  "scope": "/API/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#0f0f0f",
@@ -19,31 +19,31 @@
       "name": "Marché",
       "short_name": "Marché",
       "description": "Voir les marchés en temps réel",
-      "url": "/?page=marche",
+      "url": "/API/?page=marche",
       "icons": [
-        { "src": "/icones/icone-192.png", "sizes": "192x192", "type": "image/png" }
+        { "src": "/API/icones/icone-192.png", "sizes": "192x192", "type": "image/png" }
       ]
     },
     {
       "name": "Wallet",
       "short_name": "Wallet",
       "description": "Voir mon portefeuille",
-      "url": "/?page=wallet",
+      "url": "/API/?page=wallet",
       "icons": [
-        { "src": "/icones/icone-192.png", "sizes": "192x192", "type": "image/png" }
+        { "src": "/API/icones/icone-192.png", "sizes": "192x192", "type": "image/png" }
       ]
     }
   ],
   "screenshots": [
     {
-      "src": "/icones/icone-512.png",
+      "src": "/API/icones/icone-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "AlphaTrade — Page Marché"
     },
     {
-      "src": "/icones/icone-512.png",
+      "src": "/API/icones/icone-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
@@ -51,7 +51,7 @@
     }
   ],
   "share_target": {
-    "action": "/",
+    "action": "/API/",
     "method": "GET",
     "params": {
       "title": "title",
@@ -67,25 +67,25 @@
   },
   "icons": [
     {
-      "src": "/icones/icone-192.png",
+      "src": "/API/icones/icone-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icones/icone-192.png",
+      "src": "/API/icones/icone-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icones/icone-512.png",
+      "src": "/API/icones/icone-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icones/icone-512.png",
+      "src": "/API/icones/icone-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
